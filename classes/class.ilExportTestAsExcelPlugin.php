@@ -35,7 +35,6 @@ class ilExportTestAsExcelPlugin extends ilTestExportPlugin
 
 	protected function buildExportFile(ilTestExportFilename $filename)
 	{
-		include_once "Services/Excel/classes/class.ilExcelUtils.php";
 		$testname = $this->getTest()->getTitle();
 
 		$testSchema = $this->getTest()->mark_schema;
@@ -67,42 +66,41 @@ class ilExportTestAsExcelPlugin extends ilTestExportPlugin
 		array_push($rows, $datarow);
 
 
-		require_once 'Services/Excel/classes/class.ilExcelWriterAdapter.php';
-		$excelfile = ilUtil::ilTempnam();
-		$adapter = new ilExcelWriterAdapter($excelfile, FALSE);
+        $testname = ilUtil::getASCIIFilename(preg_replace("/\s/", "_", $testname));
 
-		$testname = ilUtil::getASCIIFilename(preg_replace("/\s/", "_", $testname));
-		$workbook = $adapter->getWorkbook();
-		$workbook->setVersion(8); // Use Excel97/2000 Format
-		// Creating a worksheet
-		$format_title =& $workbook->addFormat();
-		$format_title->setBold();
-		$format_title->setColor('black');
-		$format_title->setPattern(1);
-		$format_title->setFgColor('silver');
-		require_once './Services/Excel/classes/class.ilExcelUtils.php';
-		$worksheet =& $workbook->addWorksheet(ilExcelUtils::_convert_text($testname));
-		$row = 0;
-		$col = 0;
+        require_once 'Modules/TestQuestionPool/classes/class.ilAssExcelFormatHelper.php';
+        $worksheet = new ilAssExcelFormatHelper();
+        $worksheet->addSheet($testname);
 
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text($testname));
+        $row = 0;
+        $col = 0;
+
+		$worksheet->setCell($row, $col++, $testname);
 
 		$row++;
 		$col = 0;
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("startHISsheet"));
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text(""));
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text(""));
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("endHISsheet"));
+		$worksheet->setCell($row, $col++, "startHISsheet");
+		$worksheet->setCell($row, $col++, "");
+		$worksheet->setCell($row, $col++, "");
+		$worksheet->setCell($row, $col++, "endHISsheet");
 
 		$row++;
 		$col = 0;
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("mtknr"), $format_title);
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("nachname"), $format_title);
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("vorname"), $format_title);
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("bewertung"), $format_title);
+        $worksheet->setBold('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row);
+        $worksheet->setColors('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row, EXCEL_BACKGROUND_COLOR);
+        $worksheet->setCell($row, $col++, "mtknr");
+        $worksheet->setBold('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row);
+        $worksheet->setColors('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row, EXCEL_BACKGROUND_COLOR);
+        $worksheet->setCell($row, $col++, "nachname");
+        $worksheet->setBold('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row);
+        $worksheet->setColors('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row, EXCEL_BACKGROUND_COLOR);
+        $worksheet->setCell($row, $col++, "vorname");
+        $worksheet->setBold('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row);
+        $worksheet->setColors('A' . $row . ':' . $worksheet->getColumnCoord($col) . $row, EXCEL_BACKGROUND_COLOR);
+        $worksheet->setCell($row, $col++, "bewertung");
 
 
-		$data =& $this->getTest()->getCompleteEvaluationData(TRUE, $filterby, $filtertext);
+		$data =& $this->getTest()->getCompleteEvaluationData(TRUE);
 		// To check if the full mark is passed or 4
 		$mark = $this->getTest()->mark_schema->getMatchingMark(100);
 		$mark_short_name = "";
@@ -127,8 +125,8 @@ class ilExportTestAsExcelPlugin extends ilTestExportPlugin
 
 				$userfields = ilObjUser::_lookupFields($userdata->getUserID());
 				array_push($datarow2, $userfields['matriculation']);
-				array_push($datarow2, trim(split(",", $data->getParticipant($active_id)->getName())[0]));
-				array_push($datarow2, trim(split(",", $data->getParticipant($active_id)->getName())[1]));
+				array_push($datarow2, trim(explode(",", $data->getParticipant($active_id)->getName())[0]));
+				array_push($datarow2, trim(explode(",", $data->getParticipant($active_id)->getName())[1]));
 				$mark = $data->getParticipant($active_id)->getMark();
 				if ($mark_short_name === "passed" || $mark_short_name === "bestanden"){
 					if ($mark === "passed" || $mark === "bestanden")
@@ -155,19 +153,22 @@ class ilExportTestAsExcelPlugin extends ilTestExportPlugin
 				$col = 0;
 
 				$userfields = ilObjUser::_lookupFields($userdata->getUserID());
-				$worksheet->write($row, $col++, ilExcelUtils::_convert_text($userfields['matriculation']));
-				$worksheet->write($row, $col++, ilExcelUtils::_convert_text(trim(split(",", $data->getParticipant($active_id)->getName())[0])));
-				$worksheet->write($row, $col++, ilExcelUtils::_convert_text(trim(split(",", $data->getParticipant($active_id)->getName())[1])));
-				$worksheet->write($row, $col++, ilExcelUtils::_convert_text($mark));
-				$counter++;
+				$worksheet->setCell($row, $col++, $userfields['matriculation']);
+				$worksheet->setCell($row, $col++, trim(explode(",", $data->getParticipant($active_id)->getName())[0]));
+				$worksheet->setCell($row, $col++,trim(explode(",", $data->getParticipant($active_id)->getName())[1]));
+				$worksheet->setCell($row, $col++, $mark);
 			}
 		}
 
 
 		$row++;
 		$col = 0;
-		$worksheet->write($row, $col++, ilExcelUtils::_convert_text("endHISsheet"));
-		$workbook->close();
+		$worksheet->setCell($row, $col++,"endHISsheet");
+        $excelfile = ilUtil::ilTempnam();
+        $worksheet->writeToFile($excelfile);
+        mkdir($this->getTest()->getExportDirectory(), 0777, true);
+        @copy($excelfile . '.xlsx', $filename->getPathname('xlsx', $testname));
+        @unlink($excelfile . '.xlsx');
 
 		$datarow = array();
 		array_push($datarow, "endHISsheet");
@@ -185,11 +186,6 @@ class ilExportTestAsExcelPlugin extends ilTestExportPlugin
 			$csv .= join($csvrow, $separator) . "\n";
 		}
 
-		ilUtil::makeDirParents(dirname($filename->getPathname('csv', $testname)));
 		file_put_contents($filename->getPathname('csv', $testname), $csv);
-
-		ilUtil::makeDirParents(dirname($filename->getPathname('xls', $testname)));
-		@copy($excelfile, $filename->getPathname('xls', $testname));
-		@unlink($excelfile);
 	}
 }
